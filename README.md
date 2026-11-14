@@ -20,26 +20,49 @@ Useful flags:
 -rescan 6h            full rescan safety net (the file watcher catches most changes instantly)
 ```
 
-## Deploy to the Mac Mini (Linux)
-1. Build on this Mac:
-   ```bash
-   make linux
-   ```
-2. Copy `dist/rcm-linux-amd64` and `deploy/rcm.service` to the Mini, for example with `scp`.
-3. On the Mini:
-   ```bash
-   sudo apt install ffmpeg
-   sudo cp rcm-linux-amd64 /usr/local/bin/rcm
-   sudo useradd --system --create-home --home-dir /var/lib/rcm rcm
-   sudo cp rcm.service /etc/systemd/system/
-   ```
-   Edit `/etc/systemd/system/rcm.service` so `-lib` and `-import` point at your media drives, and make sure the `rcm` user can read them (and write to the import folder). Then:
-   ```bash
-   sudo systemctl daemon-reload && sudo systemctl enable --now rcm
-   ```
-4. Open `http://<mini-hostname>.local:8080` from any device on your network.
+## Install on the Mac Mini (Ubuntu Server)
 
-Logs: `journalctl -u rcm -f`. To update, rebuild, copy the new binary over, and run `sudo systemctl restart rcm`.
+**1. Set up the Mini.** Install **Ubuntu Server 26.04 LTS** (24.04 works too). During setup, tick
+**Install OpenSSH server**, and use Ethernet (the Mini's Wi-Fi needs an extra driver).
+
+**2. Make sure your media drives are mounted.** Ubuntu Server doesn't mount external drives on its own.
+For each drive, find it with `lsblk -f`, then mount it at boot (example for a drive labeled `Media`):
+```bash
+sudo mkdir -p /media/media
+echo 'LABEL=Media /media/media auto nofail,x-systemd.device-timeout=10s 0 2' | sudo tee -a /etc/fstab
+sudo mount -a
+```
+`nofail` means the Mini still boots if the drive is unplugged. Drives formatted on a Mac as exFAT
+work; for Mac-only formats (APFS/HFS+), reformat as ext4 or exFAT.
+
+**3. Install RCM.** Pick one:
+- **From this Mac (recommended):**
+  ```bash
+  ./deploy.sh you@mini.local
+  ```
+  It builds RCM, copies it over SSH and starts the guided installer. Use the Mini's IP address if `.local` doesn't resolve yet.
+- **On the Mini, from GitHub** (needs a published release):
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/ulfr-wolf/RoughCountryMedia/main/install.sh | sudo bash
+  ```
+  It checks the download's SHA-256 checksum before running anything.
+
+The installer shows your drives, asks for your media folders, the import folder and the port, installs
+ffmpeg and avahi (so `mini.local` works), sets RCM up as a service that starts at boot, opens the
+firewall if one is on, checks RCM is running, and prints the address to open. RCM runs as your user
+account, so it can read the same files you can.
+
+**Upgrading:** run the same command again; your settings are kept. To change folders or the port, add
+`--reconfigure`. To remove RCM: `sudo rcm uninstall` (add `--purge` to delete its database and cache;
+your media is never touched).
+
+Logs: `journalctl -u rcm -f` · Status: `sudo systemctl status rcm`
+
+### Publishing a release
+Pushing a version tag builds Linux binaries and publishes a GitHub release (see `.github/workflows/release.yml`):
+```bash
+git tag v0.3.0 && git push origin v0.3.0
+```
 
 ## Naming tips
 - Movies: `The Matrix (1999).mkv` or `The.Matrix.1999.1080p.mkv`, or a `Heat (1995)/` folder

@@ -16,8 +16,10 @@ cmd/rcm/            main: flags, startup, shutdown
 internal/library/   SQLite store, file classification, scanner, watcher, ffprobe
 internal/media/     inside files: comics, EPUBs, thumbnails, subtitles, chapters
 internal/server/    HTTP API, streaming, drag-and-drop import, readers
+internal/installer/ `rcm install` / `rcm uninstall` for Linux (systemd)
 web/                embedded single-page UI (HTML/CSS/JS, no build step)
-deploy/             systemd service for the Mini
+deploy.sh           install/upgrade on the Mini from this Mac over SSH
+install.sh          one-line install on Linux from the latest GitHub release
 ```
 
 ## Media kinds
@@ -96,4 +98,11 @@ deploy/             systemd service for the Mini
   and the saved file's canonical path is verified inside the import folder. CBR extraction skips
   hostile entry names and writes through `os.Root` too. Covered by attack tests in
   `internal/server/import_test.go`, checked by breaking each protection and watching the tests fail.
-- **Next session:** deploy to the Mini (still not done) and fix anything that turns up, then phase 3.
+- **Installer (2026-11-13):** `rcm install` / `rcm uninstall` built into the binary
+  (`internal/installer`): guided setup with drive suggestions, ffmpeg + avahi via the package manager,
+  systemd service running as the installing user, inotify limit, ufw/firewalld, health check, libraries
+  added through the API, re-run to upgrade. `deploy.sh` installs from this Mac over SSH; `install.sh` +
+  `.github/workflows/release.yml` give a checksum-verified one-liner from GitHub releases. Tested
+  against a fake system root (no Linux machine available here); scripts pass shellcheck. **Not yet
+  run on a real Ubuntu machine.**
+- **Next session:** install Ubuntu Server on the Mini, run `./deploy.sh`, fix anything that turns up, then phase 3.

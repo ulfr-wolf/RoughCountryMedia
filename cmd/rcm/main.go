@@ -12,10 +12,12 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"rcm/internal/installer"
 	"rcm/internal/library"
 	"rcm/internal/server"
 	"rcm/web"
@@ -29,6 +31,16 @@ func (m *multiFlag) String() string     { return strings.Join(*m, ",") }
 func (m *multiFlag) Set(v string) error { *m = append(*m, v); return nil }
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "install" || os.Args[1] == "uninstall") {
+		os.Exit(installer.Main(os.Args[1:], version))
+	}
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Rough Country Media %s\n\n"+
+			"  rcm [flags]            run the server\n"+
+			"  sudo rcm install       set RCM up as a service on Linux (re-run to upgrade)\n"+
+			"  sudo rcm uninstall     remove the service (your media is never touched)\n\nServer flags:\n", version)
+		flag.PrintDefaults()
+	}
 	addr := flag.String("addr", ":8080", "address to listen on")
 	dataDir := flag.String("data", "./rcm-data", "folder for the database (and default import folder)")
 	importDir := flag.String("import", "", "folder where drag-and-drop imports are saved (default <data>/media)")
@@ -113,16 +125,10 @@ func lanURLs(addr string) []string {
 	if host != "" && host != "0.0.0.0" && host != "::" {
 		return []string{"http://" + net.JoinHostPort(host, port)}
 	}
-	urls := []string{"http://localhost:" + port}
-	if name, err := os.Hostname(); err == nil {
-		name = strings.TrimSuffix(name, ".local")
-		urls = append(urls, "http://"+name+".local:"+port)
+	p, err := strconv.Atoi(port)
+	if err != nil {
+		return nil
 	}
-	ifaces, _ := net.InterfaceAddrs()
-	for _, a := range ifaces {
-		if ipn, ok := a.(*net.IPNet); ok && ipn.IP.To4() != nil && !ipn.IP.IsLoopback() && !ipn.IP.IsLinkLocalUnicast() {
-			urls = append(urls, "http://"+ipn.IP.String()+":"+port)
-		}
-	}
-	return urls
+	name, _ := os.Hostname()
+	return installer.LANURLs(name, p)
 }

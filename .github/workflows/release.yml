@@ -1,0 +1,33 @@
+# Builds Linux binaries and publishes a GitHub release when a version tag is pushed:
+#   git tag v0.3.0 && git push origin v0.3.0
+# install.sh downloads from the latest release.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: go vet ./... && go test ./...
+      - name: Build
+        run: |
+          make linux linux-arm64 VERSION="${GITHUB_REF_NAME#v}"
+          cd dist
+          for f in rcm-linux-amd64 rcm-linux-arm64; do sha256sum "$f" > "$f.sha256"; done
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/rcm-linux-* \
+            --title "Rough Country Media $GITHUB_REF_NAME" --generate-notes
