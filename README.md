@@ -52,3 +52,6 @@ Chrome, Edge and Firefox when it uses H.264/VP9/AV1 video, but not in Safari. AV
 Download button and VLC until phase 4.
 
 There's no login yet, so don't expose RCM to the internet.
+
+## License
+[MIT](LICENSE)
