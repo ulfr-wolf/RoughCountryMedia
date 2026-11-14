@@ -77,10 +77,24 @@ func sortNatural(names []string) {
 	sort.SliceStable(names, func(i, j int) bool { return NaturalLess(names[i], names[j]) })
 }
 
-// cleanArchivePath makes an archive entry name safe to use as a relative path.
-func cleanArchivePath(name string) string {
+// localArchivePath returns an archive entry name as a local relative path, or
+// false if the entry tries to escape (absolute, "..", drive letters). Unsafe
+// entries are skipped, never rewritten ("zip slip" protection).
+func localArchivePath(name string) (string, bool) {
 	name = strings.ReplaceAll(name, `\`, "/")
-	return strings.TrimPrefix(path.Clean("/"+name), "/")
+	if name == "" || strings.HasPrefix(name, "/") || (len(name) >= 2 && name[1] == ':') {
+		return "", false
+	}
+	for _, seg := range strings.Split(name, "/") {
+		if seg == ".." {
+			return "", false
+		}
+	}
+	clean := path.Clean(name)
+	if !filepath.IsLocal(filepath.FromSlash(clean)) {
+		return "", false
+	}
+	return clean, true
 }
 
 // pruneDirs keeps the `keep` most recently modified subfolders of root and deletes the rest.

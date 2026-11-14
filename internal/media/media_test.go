@@ -37,6 +37,18 @@ func TestNaturalLess(t *testing.T) {
 	}
 }
 
+func TestLocalArchivePath(t *testing.T) {
+	for in, want := range map[string]string{
+		"pages/001.jpg": "pages/001.jpg", `pages\002.jpg`: "pages/002.jpg", "a/./b.jpg": "a/b.jpg",
+		"../evil.jpg": "", "pages/../../evil.jpg": "", `..\evil.jpg`: "", "/etc/evil.jpg": "", "C:/evil.jpg": "", "": "",
+	} {
+		got, ok := localArchivePath(in)
+		if (want == "") == ok || got != want {
+			t.Errorf("localArchivePath(%q) = %q, %v; want %q", in, got, ok, want)
+		}
+	}
+}
+
 func TestToVTT(t *testing.T) {
 	srt := "\xef\xbb\xbf1\r\n00:00:01,500 --> 00:00:03,000\r\nCaf\xe9 au lait\r\n"
 	got := string(ToVTT([]byte(srt)))

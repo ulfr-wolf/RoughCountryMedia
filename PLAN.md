@@ -89,4 +89,11 @@ deploy/             systemd service for the Mini
   nav TOC and an embedded `<script>` to prove the sandbox, 12-page CBZ, M4B with chapters, MKV with an
   embedded subtitle and a Windows-1252 sidecar SRT, album cover.jpg). Fixed along the way: collapsed
   audio controls in the player, and album art being indexed as photos. Idle RAM ~19 MB.
+- **Hardening (2026-11-13):** import paths are now rejected outright (400) instead of being cleaned:
+  `..`, `.`, absolute, backslash, empty, hidden and control-character paths. All import writes go
+  through an `os.Root` confined to the import folder. Symlinks on the destination path are refused
+  (403), files are placed with a hard link so nothing (including a symlink) is ever overwritten,
+  and the saved file's canonical path is verified inside the import folder. CBR extraction skips
+  hostile entry names and writes through `os.Root` too. Covered by attack tests in
+  `internal/server/import_test.go`, checked by breaking each protection and watching the tests fail.
 - **Next session:** deploy to the Mini (still not done) and fix anything that turns up, then phase 3.

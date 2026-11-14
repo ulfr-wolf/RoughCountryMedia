@@ -20,17 +20,22 @@ import (
 )
 
 type Server struct {
-	m         *library.Manager
-	importDir string
-	cacheDir  string
-	static    fs.FS
-	thumbs    *media.Thumbs
+	m           *library.Manager
+	importDir   string
+	importCanon string // importDir with symlinks resolved, for containment checks
+	cacheDir    string
+	static      fs.FS
+	thumbs      *media.Thumbs
 }
 
 // New creates the HTTP server. cacheDir holds thumbnails, extracted comics and subtitles;
 // it can be deleted at any time and will be rebuilt.
 func New(m *library.Manager, importDir, cacheDir string, static fs.FS) *Server {
-	return &Server{m: m, importDir: importDir, cacheDir: cacheDir, static: static,
+	canon, err := filepath.EvalSymlinks(importDir)
+	if err != nil {
+		canon = filepath.Clean(importDir)
+	}
+	return &Server{m: m, importDir: importDir, importCanon: canon, cacheDir: cacheDir, static: static,
 		thumbs: media.NewThumbs(filepath.Join(cacheDir, "thumbs"))}
 }
 

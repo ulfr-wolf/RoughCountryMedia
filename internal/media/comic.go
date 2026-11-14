@@ -133,42 +133,58 @@ func extractRar(p, dir string) error {
 	if err := os.MkdirAll(tmp, 0o755); err != nil {
 		return err
 	}
+	// Every write goes through an os.Root, so no entry can land outside tmp,
+	// even via symlinks.
+	root, err := os.OpenRoot(tmp)
+	if err != nil {
+		os.RemoveAll(tmp)
+		return err
+	}
+	defer root.Close()
 	r, err := rardecode.OpenReader(p)
 	if err != nil {
 		os.RemoveAll(tmp)
 		return err
 	}
 	defer r.Close()
+	fail := func(err error) error {
+		root.Close()
+		os.RemoveAll(tmp)
+		return err
+	}
 	for {
 		h, err := r.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			os.RemoveAll(tmp)
-			return err
+			return fail(err)
 		}
 		if h.IsDir || !isImage(h.Name) {
 			continue
 		}
-		dst := filepath.Join(tmp, filepath.FromSlash(cleanArchivePath(h.Name)))
-		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
-			os.RemoveAll(tmp)
-			return err
+		name, ok := localArchivePath(h.Name)
+		if !ok {
+			continue // hostile entry name (absolute or "..") — skip it, don't rewrite it
 		}
-		f, err := os.Create(dst)
+		rel := filepath.FromSlash(name)
+		if err := root.MkdirAll(filepath.Dir(rel), 0o755); err != nil {
+			return fail(err)
+		}
+		f, err := root.OpenFile(rel, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		if errors.Is(err, fs.ErrExist) {
+			continue // duplicate entry name: keep the first
+		}
 		if err != nil {
-			os.RemoveAll(tmp)
-			return err
+			return fail(err)
 		}
 		_, err = io.Copy(f, r)
 		f.Close()
 		if err != nil {
-			os.RemoveAll(tmp)
-			return err
+			return fail(err)
 		}
 	}
-	os.WriteFile(filepath.Join(tmp, ".done"), nil, 0o644)
+	root.WriteFile(".done", nil, 0o644)
 	os.RemoveAll(dir)
 	if err := os.Rename(tmp, dir); err != nil {
 		return err
