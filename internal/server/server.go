@@ -16,16 +16,22 @@ import (
 	"time"
 
 	"rcm/internal/library"
+	"rcm/internal/media"
 )
 
 type Server struct {
 	m         *library.Manager
 	importDir string
+	cacheDir  string
 	static    fs.FS
+	thumbs    *media.Thumbs
 }
 
-func New(m *library.Manager, importDir string, static fs.FS) *Server {
-	return &Server{m: m, importDir: importDir, static: static}
+// New creates the HTTP server. cacheDir holds thumbnails, extracted comics and subtitles;
+// it can be deleted at any time and will be rebuilt.
+func New(m *library.Manager, importDir, cacheDir string, static fs.FS) *Server {
+	return &Server{m: m, importDir: importDir, cacheDir: cacheDir, static: static,
+		thumbs: media.NewThumbs(filepath.Join(cacheDir, "thumbs"))}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -36,6 +42,14 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/items/{id}", s.item)
 	mux.HandleFunc("GET /api/items/{id}/stream", s.stream)
 	mux.HandleFunc("PUT /api/items/{id}/progress", s.progress)
+	mux.HandleFunc("GET /api/items/{id}/thumb", s.thumb)
+	mux.HandleFunc("GET /api/items/{id}/pages", s.comicPages)
+	mux.HandleFunc("GET /api/items/{id}/pages/{n}", s.comicPage)
+	mux.HandleFunc("GET /api/items/{id}/book", s.book)
+	mux.HandleFunc("GET /api/items/{id}/epub/{path...}", s.epubFile)
+	mux.HandleFunc("GET /api/items/{id}/chapters", s.chapters)
+	mux.HandleFunc("GET /api/items/{id}/subtitles", s.subtitles)
+	mux.HandleFunc("GET /api/items/{id}/subtitles/{sid}", s.subtitle)
 	mux.HandleFunc("GET /api/continue", s.cont)
 	mux.HandleFunc("GET /api/shows", s.shows)
 	mux.HandleFunc("GET /api/albums", s.albums)
@@ -111,8 +125,10 @@ func logRequests(h http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w, code: 200}
 		h.ServeHTTP(rec, r)
 		// Streams and static files are noisy; log only API calls that are not progress pings, plus errors.
-		if (strings.HasPrefix(r.URL.Path, "/api/") && !strings.HasSuffix(r.URL.Path, "/progress") &&
-			!strings.HasSuffix(r.URL.Path, "/stream")) || rec.code >= 500 {
+		p := r.URL.Path
+		quiet := strings.HasSuffix(p, "/progress") || strings.HasSuffix(p, "/stream") || strings.HasSuffix(p, "/thumb") ||
+			strings.Contains(p, "/pages/") || strings.Contains(p, "/epub/")
+		if (strings.HasPrefix(p, "/api/") && !quiet) || rec.code >= 500 {
 			log.Printf("%s %s %d %s", r.Method, r.URL.Path, rec.code, time.Since(start).Round(time.Millisecond))
 		}
 	})

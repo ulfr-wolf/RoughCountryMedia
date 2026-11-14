@@ -60,11 +60,16 @@
     <div><b id="pl-title"></b><span id="pl-sub" class="muted"></span></div>
     <div class="player-tools">
       <button id="pl-restart" class="btn small" hidden>Start over</button>
+      <select id="pl-speed" aria-label="Playback speed" hidden>
+        <option value="0.75">0.75×</option><option value="1">1×</option><option value="1.25">1.25×</option>
+        <option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option>
+      </select>
       <a id="pl-download" class="btn small" href="#">Download</a>
       <button id="pl-close" class="icon" aria-label="Close player">✕</button>
     </div>
   </div>
   <div id="pl-body"></div>
+  <div id="pl-extra"></div>
   <p id="pl-note" class="muted small"></p>
 </dialog>
 

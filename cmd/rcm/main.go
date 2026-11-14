@@ -83,7 +83,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           server.New(mgr, imp, web.FS()).Handler(),
+		Handler:           server.New(mgr, imp, filepath.Join(data, "cache"), web.FS()).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		// No read/write timeouts: movie streams and big uploads run for hours.
 	}

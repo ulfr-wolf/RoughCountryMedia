@@ -60,3 +60,19 @@ func TestImportFolder(t *testing.T) {
 		}
 	}
 }
+
+func TestArtworkIsNotAPhoto(t *testing.T) {
+	for name, want := range map[string]bool{
+		"Album/cover.jpg": false, "Album/Folder.PNG": false, "AlbumArt_{123}_Large.jpg": false, "poster.jpg": false,
+		"Trip/IMG_0001.jpg": true, "covers-of-the-80s.jpg": true, "song.mp3": true,
+	} {
+		if got := Supported(name); got != want {
+			t.Errorf("Supported(%q) = %v, want %v", name, got, want)
+		}
+	}
+	for in, want := range map[string]string{"Band/Album/cover.jpg": "Music", "Heat (1995)/poster.jpg": "Movies"} {
+		if got := ImportFolder(in); got != want {
+			t.Errorf("ImportFolder(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

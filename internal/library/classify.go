@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/dhowden/tag"
+
+	"rcm/internal/media"
 )
 
 const (
@@ -43,7 +45,22 @@ var familyByExt = map[string]string{
 
 // Supported reports whether a file name has a media extension RCM indexes.
 func Supported(name string) bool {
-	return familyByExt[strings.ToLower(filepath.Ext(name))] != ""
+	return familyByExt[strings.ToLower(filepath.Ext(name))] != "" && !isArtwork(name)
+}
+
+// artworkNames are images that belong to an album or movie folder, not the photo library.
+var artworkNames = map[string]bool{
+	"cover": true, "folder": true, "front": true, "back": true, "album": true, "albumart": true,
+	"albumartsmall": true, "poster": true, "fanart": true, "thumb": true, "banner": true,
+}
+
+func isArtwork(name string) bool {
+	ext := strings.ToLower(filepath.Ext(name))
+	if familyByExt[ext] != famPhoto {
+		return false
+	}
+	stem := strings.ToLower(strings.TrimSuffix(filepath.Base(name), filepath.Ext(name)))
+	return artworkNames[stem] || strings.HasPrefix(stem, "albumart_")
 }
 
 // skipName reports files and folders the scanner ignores.
@@ -277,6 +294,11 @@ func ParseFile(path string, lib Library, fi os.FileInfo) *Item {
 	case famBook:
 		it.Kind = KindBook
 		it.Title, it.Year = parseMovie(base)
+		if ext == ".epub" {
+			if title, author := media.EpubMeta(path); title != "" {
+				it.Title, it.Artist = title, author
+			}
+		}
 	case famComic:
 		it.Kind = KindComic
 		it.Title = cleanName(base)
@@ -297,6 +319,14 @@ func ParseFile(path string, lib Library, fi os.FileInfo) *Item {
 
 // ImportFolder is the top-level folder an imported file is sorted into.
 func ImportFolder(relPath string) string {
+	if isArtwork(relPath) {
+		// Keep artwork beside its album or movie when a whole folder is dropped.
+		stem := strings.ToLower(strings.TrimSuffix(filepath.Base(relPath), filepath.Ext(relPath)))
+		if stem == "poster" || stem == "fanart" || stem == "banner" {
+			return "Movies"
+		}
+		return "Music"
+	}
 	ext := strings.ToLower(filepath.Ext(relPath))
 	switch familyByExt[ext] {
 	case famVideo:

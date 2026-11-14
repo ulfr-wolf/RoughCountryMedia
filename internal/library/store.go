@@ -367,9 +367,13 @@ func (s *Store) Items(q Query) ([]Item, error) {
 }
 
 func (s *Store) Continue(limit int) ([]Item, error) {
+	// Video/audio positions are seconds. Book/comic positions are progress units
+	// (pages read, or chapter + fraction) and their duration is the page/chapter count.
 	rows, err := s.db.Query(`SELECT `+itemCols+` FROM items i JOIN progress p ON p.item_id=i.id
-		WHERE i.kind IN ('movie','episode','audiobook') AND p.position > 30
-		  AND (i.duration = 0 OR p.position < i.duration * 0.95)
+		WHERE (i.kind IN ('movie','episode','audiobook') AND p.position > 30
+		       AND (i.duration = 0 OR p.position < i.duration * 0.95))
+		   OR (i.kind IN ('book','comic') AND p.position > 0
+		       AND (i.duration = 0 OR p.position < i.duration * 0.99))
 		ORDER BY p.updated_at DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
@@ -384,15 +388,22 @@ func (s *Store) SetProgress(id int64, pos float64) error {
 	return err
 }
 
+// SetLength records a book's chapter count or a comic's page count (stored as duration).
+func (s *Store) SetLength(id int64, n float64) error {
+	_, err := s.db.Exec(`UPDATE items SET duration=? WHERE id=? AND duration<>?`, n, id, n)
+	return err
+}
+
 type Show struct {
 	Show     string `json:"show"`
 	Episodes int    `json:"episodes"`
 	Seasons  int    `json:"seasons"`
 	AddedAt  int64  `json:"added_at"`
+	CoverID  int64  `json:"cover_id"`
 }
 
 func (s *Store) Shows() ([]Show, error) {
-	rows, err := s.db.Query(`SELECT show, COUNT(*), COUNT(DISTINCT season), MAX(added_at) FROM items
+	rows, err := s.db.Query(`SELECT show, COUNT(*), COUNT(DISTINCT season), MAX(added_at), MIN(id) FROM items
 		WHERE kind='episode' GROUP BY show ORDER BY show COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
@@ -401,7 +412,7 @@ func (s *Store) Shows() ([]Show, error) {
 	out := []Show{}
 	for rows.Next() {
 		var sh Show
-		if err := rows.Scan(&sh.Show, &sh.Episodes, &sh.Seasons, &sh.AddedAt); err != nil {
+		if err := rows.Scan(&sh.Show, &sh.Episodes, &sh.Seasons, &sh.AddedAt, &sh.CoverID); err != nil {
 			return nil, err
 		}
 		out = append(out, sh)
@@ -415,10 +426,11 @@ type Album struct {
 	Tracks      int    `json:"tracks"`
 	Year        int    `json:"year,omitempty"`
 	AddedAt     int64  `json:"added_at"`
+	CoverID     int64  `json:"cover_id"`
 }
 
 func (s *Store) Albums() ([]Album, error) {
-	rows, err := s.db.Query(`SELECT album_artist, album, COUNT(*), MAX(year), MAX(added_at) FROM items
+	rows, err := s.db.Query(`SELECT album_artist, album, COUNT(*), MAX(year), MAX(added_at), MIN(id) FROM items
 		WHERE kind='music' GROUP BY album_artist, album ORDER BY album_artist COLLATE NOCASE, album COLLATE NOCASE`)
 	if err != nil {
 		return nil, err
@@ -427,7 +439,7 @@ func (s *Store) Albums() ([]Album, error) {
 	out := []Album{}
 	for rows.Next() {
 		var a Album
-		if err := rows.Scan(&a.AlbumArtist, &a.Album, &a.Tracks, &a.Year, &a.AddedAt); err != nil {
+		if err := rows.Scan(&a.AlbumArtist, &a.Album, &a.Tracks, &a.Year, &a.AddedAt, &a.CoverID); err != nil {
 			return nil, err
 		}
 		out = append(out, a)

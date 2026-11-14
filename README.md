@@ -44,7 +44,19 @@ Logs: `journalctl -u rcm -f`. To update, rebuild, copy the new binary over, and 
 ## Naming tips
 - Movies: `The Matrix (1999).mkv` or `The.Matrix.1999.1080p.mkv`, or a `Heat (1995)/` folder
 - TV: `Show Name/Season 1/Show.Name.S01E02.Title.mkv` (also `1x02`)
-- Music: tags are read automatically; otherwise `Artist/Album/01 - Title.mp3`
+- Music: tags are read automatically; otherwise `Artist/Album/01 - Title.mp3`. Album art comes from the
+  file's tags or a `cover.jpg`/`folder.jpg` in the album folder.
+- Subtitles: put them next to the video with the same name, like `Heat (1995).srt` or `Heat (1995).en.srt`.
+  Text subtitles inside MKV/MP4 files are found automatically.
+- Photos: each folder becomes an album.
+
+## Reading and listening
+- **EPUB:** opens in a built-in reader with a contents menu, light/sepia/dark pages and text size. It remembers your place.
+- **Comics (CBZ/CBR):** full-screen reader. Tap the right side or press → for the next page. It remembers your page.
+- **PDF:** opens in the browser's own viewer. MOBI/AZW3 and CB7 can be downloaded.
+- **Audiobooks (M4B):** chapter list, 0.75–2× speed, resume.
+
+Thumbnails, extracted comics and subtitles are cached in `<data>/cache`. It's safe to delete; it rebuilds itself.
 
 ## What plays where
 Files are streamed as-is (no transcoding yet). MP4 with H.264/AAC plays everywhere. MKV plays in
