@@ -1,11 +1,15 @@
 # Builds Linux binaries and publishes a GitHub release when a version tag is pushed:
 #   git tag v0.3.0 && git push origin v0.3.0
 # install.sh downloads from the latest release.
+#
+# It can also be run by hand from the Actions tab (or `gh workflow run release.yml`)
+# to test and build without publishing anything.
 name: release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,18 +18,22 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Test
         run: go vet ./... && go test ./...
       - name: Build
         run: |
-          make linux linux-arm64 VERSION="${GITHUB_REF_NAME#v}"
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then version="dev-${GITHUB_SHA::7}"; fi
+          make linux linux-arm64 VERSION="$version"
           cd dist
           for f in rcm-linux-amd64 rcm-linux-arm64; do sha256sum "$f" > "$f.sha256"; done
+          ls -l
       - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
