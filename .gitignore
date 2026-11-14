@@ -1,0 +1,4 @@
+dist/
+rcm-data/
+testdata/sample/
+.DS_Store

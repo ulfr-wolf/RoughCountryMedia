@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Rough Country Media</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c2410c'/><path d='M12 9l12 7-12 7z' fill='white'/></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/home" aria-label="Rough Country Media home">
+    <span class="logo" aria-hidden="true">▶</span>
+    <span class="brand-text">Rough Country <b>Media</b></span>
+  </a>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#/home" data-tab="home">Home</a>
+    <a href="#/movies" data-tab="movies">Movies</a>
+    <a href="#/tv" data-tab="tv">TV</a>
+    <a href="#/music" data-tab="music">Music</a>
+    <a href="#/audiobooks" data-tab="audiobooks">Audiobooks</a>
+    <a href="#/books" data-tab="books">Books</a>
+    <a href="#/comics" data-tab="comics">Comics</a>
+    <a href="#/photos" data-tab="photos">Photos</a>
+    <a href="#/settings" data-tab="settings">Settings</a>
+  </nav>
+  <div class="actions">
+    <input id="search" type="search" placeholder="Search everything" aria-label="Search">
+    <button id="add-btn" class="btn primary" title="Add files or a folder">+ Add</button>
+  </div>
+</header>
+
+<main id="view" tabindex="-1"></main>
+
+<!-- hidden pickers used by the + Add menu -->
+<input id="pick-files" type="file" multiple hidden>
+<input id="pick-folder" type="file" webkitdirectory multiple hidden>
+<div id="add-menu" class="menu" hidden>
+  <button data-pick="files">Add files…</button>
+  <button data-pick="folder">Add a folder…</button>
+  <p class="hint">Or drag files and folders anywhere onto this page.</p>
+</div>
+
+<div id="drop" class="drop" hidden>
+  <div class="drop-box">
+    <div class="drop-icon" aria-hidden="true">⇩</div>
+    <p>Drop to add to your library</p>
+    <small>Movies, TV, music, books, comics and photos are sorted automatically</small>
+  </div>
+</div>
+
+<section id="uploads" class="uploads" hidden aria-live="polite">
+  <header><b id="up-title">Uploading</b><button id="up-close" class="icon" aria-label="Close">✕</button></header>
+  <ul id="up-list"></ul>
+</section>
+
+<dialog id="player" class="player">
+  <div class="player-head">
+    <div><b id="pl-title"></b><span id="pl-sub" class="muted"></span></div>
+    <div class="player-tools">
+      <button id="pl-restart" class="btn small" hidden>Start over</button>
+      <a id="pl-download" class="btn small" href="#">Download</a>
+      <button id="pl-close" class="icon" aria-label="Close player">✕</button>
+    </div>
+  </div>
+  <div id="pl-body"></div>
+  <p id="pl-note" class="muted small"></p>
+</dialog>
+
+<footer id="audio-bar" class="audio-bar" hidden>
+  <div class="ab-info"><b id="ab-title"></b><span id="ab-sub" class="muted"></span></div>
+  <div class="ab-controls">
+    <button id="ab-prev" class="icon" aria-label="Previous track">⏮</button>
+    <audio id="audio" controls preload="metadata"></audio>
+    <button id="ab-next" class="icon" aria-label="Next track">⏭</button>
+    <button id="ab-close" class="icon" aria-label="Stop and close">✕</button>
+  </div>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
